@@ -11,6 +11,22 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
 
+
+def build_discrete_plotly_colorscale(bins, colors):
+    zmin = bins[0]
+    zmax = bins[-1]
+    span = zmax - zmin
+
+    colorscale = []
+    for i, color in enumerate(colors):
+        left = (bins[i] - zmin) / span
+        right = (bins[i + 1] - zmin) / span
+        colorscale.append([left, color])
+        colorscale.append([right, color])
+
+    return colorscale
+
+
 def scenario_analysis_asset_level(
     climate_risk_df,
     location_name,
@@ -19,67 +35,42 @@ def scenario_analysis_asset_level(
     sheet_name="data",
     show_figure=True
 ):
-    """
-    Create a 3-panel asset-level scenario analysis heatmap for one location.
-
-    Panels:
-    1. Historical + Orderly (hist + ssp126)
-    2. Disorderly (ssp245)
-    3. Hot-house-world (ssp585)
-
-    Parameters
-    ----------
-    climate_risk_df : str
-        Path to Excel file.
-    location_name : str
-        Asset/location name exactly as written in the Excel file.
-    config : module
-        Your config.py with hazard names, labels, colors, etc.
-    output_file : str
-        Output PNG path.
-    sheet_name : str
-        Excel sheet name.
-    show_figure : bool
-        Whether to display the figure.
-    """
 
     df = pd.read_excel(climate_risk_df, sheet_name=sheet_name, skiprows=[0])
+
+    # Apply mappings for display
     df["period"] = df["period"].replace(config.period_mapping)
     df["scenario"] = df["scenario"].replace(config.scenario_mapping)
-    
+    df["location"] = df["location"].astype(str).str.strip()
 
-    # df["period"] = df["period"].astype(str).str.strip()
-    # df["scenario"] = df["scenario"].astype(str).str.strip().str.lower()
-    # df["location"] = df["location"].astype(str).str.strip()
-
-    # Filter one location
     df_loc = df[df["location"] == location_name].copy()
     if df_loc.empty:
-        available = sorted(df["location"].dropna().unique().tolist())
-        raise ValueError(
-            f"Location '{location_name}' not found. Available locations: {available}"
-        )
+        raise ValueError(f"Location '{location_name}' not found")
 
-    # Hazard codes in the desired order
+    # Hazard order from config (STRICT)
     hazard_codes = [k for k in config.CHOICES_HAZARDS.keys() if k != "AL"]
-    hazard_labels = [config.CHOICES_HAZARDS[h] for h in hazard_codes]
 
-    # Panel definitions
+    # Panels
     panel_specs = [
         {
             "title": "Historical - Orderly",
-            "scenarios": ["hist", "RCP2.6"],
             "periods": ["hist", "2030", "2040", "2050"],
+            "scenario_by_period": {
+                "hist": "hist",
+                "2030": "RCP2.6",
+                "2040": "RCP2.6",
+                "2050": "RCP2.6",
+            },
         },
         {
             "title": "Disorderly",
-            "scenarios": ["RCP4.5"],
             "periods": ["2030", "2040", "2050"],
+            "scenario": "RCP4.5",
         },
         {
             "title": "Hot-house-world",
-            "scenarios": ["RCP8.5"],
             "periods": ["2030", "2040", "2050"],
+            "scenario": "RCP8.5",
         },
     ]
 
@@ -89,38 +80,43 @@ def scenario_analysis_asset_level(
         shared_yaxes=True,
         horizontal_spacing=0.08,
         subplot_titles=[p["title"] for p in panel_specs],
+        column_widths=[1.25, 1, 1]
     )
 
-    for i, panel in enumerate(panel_specs, start=1):
-        panel_df = df_loc[
-            df_loc["scenario"].isin(panel["scenarios"]) &
-            df_loc["period"].isin(panel["periods"])
-        ].copy()
+    def score_to_label(x):
+        if pd.isna(x):
+            return ""
+        if x < 0.2:
+            return "L"
+        elif x < 0.4:
+            return "M"
+        elif x < 0.6:
+            return "H"
+        elif x < 0.8:
+            return "S"
+        return "E"
 
-        # For the first panel, keep historical row for 2011-2020,
-        # then use ssp126 for future periods
-        if "hist" in panel["scenarios"] and "RCP2.6" in panel["scenarios"]:
+    for i, panel in enumerate(panel_specs, start=1):
+
+        if i == 1:
             rows = []
             for period in panel["periods"]:
-                if period == "hist":
-                    tmp = panel_df[
-                        (panel_df["period"] == period) &
-                        (panel_df["scenario"] == "hist")
-                    ]
-                else:
-                    tmp = panel_df[
-                        (panel_df["period"] == period) &
-                        (panel_df["scenario"] == "RCP2.6")
-                    ]
+                scenario = panel["scenario_by_period"][period]
+                tmp = df_loc[
+                    (df_loc["period"] == period) &
+                    (df_loc["scenario"] == scenario)
+                ]
                 if not tmp.empty:
                     rows.append(tmp.iloc[0])
 
-            if not rows:
-                raise ValueError(f"No data found for location '{location_name}' in panel '{panel['title']}'.")
-
             panel_df = pd.DataFrame(rows)
+
         else:
-            # For ssp245 / ssp585 panels, keep one row per period
+            panel_df = df_loc[
+                (df_loc["scenario"] == panel["scenario"]) &
+                (df_loc["period"].isin(panel["periods"]))
+            ].copy()
+
             panel_df = (
                 panel_df.sort_values("period")
                 .drop_duplicates(subset=["period"], keep="first")
@@ -128,23 +124,19 @@ def scenario_analysis_asset_level(
 
         panel_df = panel_df.set_index("period").reindex(panel["periods"])
 
-        # Build z matrix
-        z = panel_df[hazard_codes].T
-        z.index = hazard_labels
-
-        # Short risk labels inside cells
-        def score_to_label(x):
-            if pd.isna(x):
-                return ""
-            if x < 0.2:
-                return "L"
-            elif x < 0.4:
-                return "M"
-            elif x < 0.6:
-                return "H"
-            elif x < 0.8:
-                return "S"
-            return "E"
+        # enforce full hazard order (even if some are missing)
+        z = panel_df.copy()
+        
+        # ensure ALL hazard columns exist
+        for h in hazard_codes:
+            if h not in z.columns:
+                z[h] = None
+        
+        # now reorder strictly
+        z = z[hazard_codes].T
+        
+        # map labels AFTER ordering
+        z.index = [config.CHOICES_HAZARDS[h] for h in hazard_codes]
 
         text = z.applymap(score_to_label)
 
@@ -164,12 +156,15 @@ def scenario_analysis_asset_level(
                     "Period: %{x}<br>"
                     "Risk score: %{z:.1f}<extra></extra>"
                 ),
-                xgap=1,
-                ygap=1,
+                xgap=2,
+                ygap=2,
             ),
             row=1,
             col=i,
         )
+
+    # ✅ DISCRETE COLORS from config
+    colorscale = build_discrete_plotly_colorscale(config.bins, config.clrs)
 
     fig.update_layout(
         title=f"Risk scores scenario analysis for {location_name}",
@@ -180,20 +175,16 @@ def scenario_analysis_asset_level(
         paper_bgcolor="white",
         plot_bgcolor="white",
         coloraxis=dict(
-            colorscale=config.wtn_colorscale_hex if hasattr(config, "wtn_colorscale_hex") else [
-                [0.00, "#6f8f82"],
-                [0.20, "#b8a76a"],
-                [0.40, "#d18a4b"],
-                [0.60, "#d84a2b"],
-                [0.80, "#c81d11"],
-                [1.00, "#b30000"],
-            ],
+            colorscale=colorscale,
             cmin=0,
             cmax=1,
             colorbar=dict(
                 title="Risk levels",
-                tickvals=[0.1, 0.3, 0.5, 0.7, 0.9],
-                ticktext=["Low", "Moderate", "High", "Severe", "Extreme"],
+                tickvals=[
+                    (config.bins[i] + config.bins[i + 1]) / 2
+                    for i in range(len(config.bins) - 1)
+                ],
+                ticktext=config.labels,
                 len=0.8,
             ),
         ),
@@ -208,4 +199,4 @@ def scenario_analysis_asset_level(
     # if show_figure:
     #     fig.show()
 
-    return fig 
+    return fig
