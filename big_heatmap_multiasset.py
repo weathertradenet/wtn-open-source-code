@@ -6,4 +6,8 @@
 
 ## this BIG heatmap compares risk score values between locations
 
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 def big_heatmap_multiasset(clrs, bins, labels,): 

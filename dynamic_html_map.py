@@ -68,7 +68,7 @@ def dynamic_html_map(my_locations_file, reference_column, output_file="tmp/map.h
     folium.LayerControl().add_to(m)
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    # m.save(output_file)
-    # return m
+    m.save(output_file)
+    return m
 
     

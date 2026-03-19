@@ -21,3 +21,15 @@ CHOICES_HAZARDS = {
     'FD': 'River Flood'
 }
 
+period_mapping = {
+    '2011-2020': 'hist',
+    '2021-2030': '2030',
+    '2031-2040': '2040',
+    '2041-2050': '2050'
+}
+
+scenario_mapping = {
+    'ssp126': 'RCP2.6',
+    'ssp245': 'RCP4.5',
+    'ssp585': 'RCP8.5'
+}
