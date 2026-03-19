@@ -1,5 +1,4 @@
-
-.env
+env
 
 # Python
 __pycache__/
@@ -14,5 +13,5 @@ venv/
 .DS_Store
 
 .ipynb_checkpoints/
-json_to_excel_one_location.py
-json_to_excel_multiple_locations.py
+
+
