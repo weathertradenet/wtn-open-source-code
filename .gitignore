@@ -1,0 +1,15 @@
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.ipynb
+
+# Virtual env
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+.ipynb_checkpoints/
