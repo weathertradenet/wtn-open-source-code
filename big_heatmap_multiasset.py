@@ -6,8 +6,91 @@
 
 ## this BIG heatmap compares risk score values between locations
 
-import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-def big_heatmap_multiasset(clrs, bins, labels,): 
+import os
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+def big_heatmap_multiasset(climate_risk_df,
+    config,
+    output_file="tmp/heatmap_compare_all_hazards_all_locations.png",
+    sheet_name="data",
+    period="hist",
+    show_figure=True
+):
+    df = pd.read_excel(climate_risk_df, sheet_name=sheet_name, skiprows=[0])
+
+    df["period"] = df["period"].replace(config.period_mapping)
+
+    filtered_df = df[(df["period"] == "hist")].copy()
+    title_suffix = "historical period"
+
+    hazard_codes = [key for key in config.CHOICES_HAZARDS.keys() if key in filtered_df.columns]
+
+    melted = filtered_df.melt(
+        id_vars=["location"],
+        value_vars=hazard_codes,
+        var_name="hazard",
+        value_name="value"
+    )
+
+    melted["hazard"] = melted["hazard"].map(config.CHOICES_HAZARDS)
+
+    heatmap_data = melted.pivot_table(
+        index="hazard",
+        columns="location",
+        values="value"
+    )
+
+    ordered_hazards = [
+        config.CHOICES_HAZARDS[key]
+        for key in config.CHOICES_HAZARDS
+        if config.CHOICES_HAZARDS[key] in heatmap_data.index
+    ]
+    heatmap_data = heatmap_data.reindex(index=ordered_hazards)
+
+    cmap = mcolors.ListedColormap(config.clrs)
+    c_ticks = [(config.bins[i] + config.bins[i + 1]) / 2 for i in range(len(config.bins) - 1)]
+    norm = mcolors.BoundaryNorm(config.bins, cmap.N)
+
+    plt.figure(figsize=(20, 7))
+    sns.set(style="whitegrid")
+
+    ax = sns.heatmap(
+        heatmap_data,
+        cmap=cmap,
+        norm=norm,
+        vmin=0,
+        vmax=1,
+        linewidths=0.8,
+        linecolor="white",
+        cbar_kws={
+            "ticks": c_ticks,
+            "format": "%.2f",
+            "pad": 0.01,
+        }
+    )
+
+    colorbar = ax.collections[0].colorbar
+    colorbar.set_ticklabels(config.labels)
+    colorbar.ax.tick_params(labelsize=16)
+
+    plt.title(f"Climate Risk Scores by facility, {title_suffix}", fontsize=18, pad=20)
+    plt.xlabel("Locations", fontsize=16)
+    plt.ylabel("Hazard type", fontsize=16)
+    plt.xticks(rotation=50, ha="right", fontsize=14)
+    plt.yticks(rotation=0, fontsize=14)
+    plt.tight_layout()
+
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    plt.savefig(output_file, dpi=300, bbox_inches="tight")
+
+    if show_figure:
+        plt.show()
+    else:
+        plt.close()
+
+    # return heatmap_data
+    return plt
