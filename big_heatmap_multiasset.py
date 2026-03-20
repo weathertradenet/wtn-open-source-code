@@ -44,12 +44,21 @@ def big_heatmap_multiasset(climate_risk_df,
         values="value"
     )
 
-    ordered_hazards = [
-        config.CHOICES_HAZARDS[key]
-        for key in config.CHOICES_HAZARDS
-        if config.CHOICES_HAZARDS[key] in heatmap_data.index
-    ]
-    heatmap_data = heatmap_data.reindex(index=ordered_hazards)
+    # STRICT hazard order from config (excluding AL)
+    hazard_codes = [k for k in config.CHOICES_HAZARDS.keys() if k != "AL"]
+    
+    hazard_labels = [config.CHOICES_HAZARDS[h] for h in hazard_codes]
+    
+    # Ensure ALL hazards exist (important)
+    for h in hazard_labels:
+        if h not in heatmap_data.index:
+            heatmap_data.loc[h] = None
+    
+    # Reorder strictly
+    heatmap_data = heatmap_data.reindex(index=hazard_labels)
+    
+    # IMPORTANT: reverse so first appears at TOP
+    heatmap_data = heatmap_data.iloc[::-1]
 
     cmap = mcolors.ListedColormap(config.clrs)
     c_ticks = [(config.bins[i] + config.bins[i + 1]) / 2 for i in range(len(config.bins) - 1)]

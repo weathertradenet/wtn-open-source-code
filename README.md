@@ -64,13 +64,14 @@ WTN_EMAIL=your_email
 
 ## Python functions for Risk Score data processing
 
-1. Call API for a specific geolocation
-2. Transform json for one location ⇒ create Excel file
-3. Transform json for multiple locations ⇒ create Excel file for a group of locations
-4. Create dynamic HTML map
-5. Compare risk scores between different periods and scenarios : scenario analysis heatmap for one location
-6. Compare risk score values between different locations (without scenario analysis). 2D heatmap : hazards (Y-axis) x locations (X-axis)
-7. Four piecharts: for two primary hazards
+1. main.py regroups all functions together
+<!-- 2. Call API for a specific geolocation -->
+<!-- 3. Transform json for one location ⇒ create Excel file -->
+<!-- 4. Transform json for multiple locations ⇒ create Excel file for a group of locations -->
+5. Create dynamic HTML map
+6. Compare risk scores between different periods and scenarios : scenario analysis heatmap for one location
+7. Compare risk score values between different locations (without scenario analysis). 2D heatmap : hazards (Y-axis) x locations (X-axis)
+8. Four piecharts: for two primary hazards
    * two for historical reference period, and
    * two for one forward-looking scenario, one period (default sessing rcp8.5, 2050)
 

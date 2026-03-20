@@ -134,9 +134,15 @@ def scenario_analysis_asset_level(
         
         # now reorder strictly
         z = z[hazard_codes].T
+
+        # enforce correct order from config
+        z = z.reindex(hazard_codes)
         
         # map labels AFTER ordering
         z.index = [config.CHOICES_HAZARDS[h] for h in hazard_codes]
+        
+        # IMPORTANT: reverse so first appears at TOP
+        z = z.iloc[::-1]
 
         text = z.applymap(score_to_label)
 
