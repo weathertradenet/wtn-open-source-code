@@ -173,7 +173,7 @@ def scenario_analysis_asset_level(
     colorscale = build_discrete_plotly_colorscale(config.bins, config.clrs)
 
     fig.update_layout(
-        title=f"Risk scores scenario analysis for {location_name}",
+        title=f"Scenario analysis for {location_name}",
         title_x=0.5,
         width=800,
         height=400,
@@ -185,17 +185,24 @@ def scenario_analysis_asset_level(
             cmin=0,
             cmax=1,
             colorbar=dict(
-                title="Risk levels",
                 tickvals=[
                     (config.bins[i] + config.bins[i + 1]) / 2
                     for i in range(len(config.bins) - 1)
                 ],
                 ticktext=config.labels,
-                len=0.8,
+                tickfont=dict(size=11),
+                thickness=18,
+                len=1,
+                y=0.5,
+                yanchor="middle",
+                x=1.02,
+                xanchor="left",
+                outlinewidth=0,
             ),
         ),
-        margin=dict(l=40, r=40, t=70, b=40),
+        margin=dict(l=40, r=70, t=70, b=40),
     )
+    
 
     fig.update_xaxes(tickangle=270)
 
