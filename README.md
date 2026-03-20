@@ -68,10 +68,10 @@ WTN_EMAIL=your_email
 <!-- 2. Call API for a specific geolocation -->
 <!-- 3. Transform json for one location ⇒ create Excel file -->
 <!-- 4. Transform json for multiple locations ⇒ create Excel file for a group of locations -->
-5. Create dynamic HTML map
-6. Compare risk scores between different periods and scenarios : scenario analysis heatmap for one location
-7. Compare risk score values between different locations (without scenario analysis). 2D heatmap : hazards (Y-axis) x locations (X-axis)
-8. Four piecharts: for two primary hazards
+2. Create dynamic HTML map
+3. Scenario analysis heatmap for one location. <br>Compare risk scores between different periods (past vs future) and between scenarios.
+4. Compare risk score values between different locations (without scenario analysis). <br> 2D heatmap : hazards (Y-axis) x locations (X-axis)
+5. Four piecharts: for two primary hazards
    * two for historical reference period, and
    * two for one forward-looking scenario, one period (default sessing rcp8.5, 2050)
 
@@ -89,14 +89,16 @@ This [documentation](https://www.weathertrade.net/faq/analysis-for-multiple-loca
 
 ## Scenario analysis heatmap for one location
 
-This heatmap illustrates exposure to climate-related extremes. All hazards are compared in one graph.
+This heatmap illustrates the exposure to climate-related hazards. All hazards are compared in one graph.
 
 ![Scenario analysis](png/scenario_analysis_asset_level.png)
 
 
 ## Big heatmap
 
-Compare risk score values between different locations (without scenario analysis). 2D heatmap : hazards (Y-axis) x locations (X-axis)
+Compare risk score values (relative exposures) between different locations.<br>
+(without scenario analysis)<br>
+2D heatmap : hazards (Y-axis) x locations (X-axis)
 
 When comparing between multiple locations, risk scores can answer these questions:
 * Where is the problem? Asset A and asset B
